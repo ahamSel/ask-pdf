@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Q&A System</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    />
+    <script src="https://unpkg.com/@mui/material@latest/umd/material-ui.development.js"></script>
+    <style>
+      body {
+        font-family: "Roboto", sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background-color: #1976d2;
+        color: white;
+        padding: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header h1 {
+        margin: 0;
+        font-weight: 400;
+      }
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .input-field {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        margin-bottom: 10px;
+      }
+      .button {
+        background-color: #1976d2;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+      }
+      .button:hover {
+        background-color: #1565c0;
+      }
+      .button.delete {
+        background-color: #dc3545;
+      }
+      .button.delete:hover {
+        background-color: #c82333;
+      }
+      .document-list {
+        display: grid;
+        gap: 15px;
+      }
+      .document-item {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .document-info {
+        flex-grow: 1;
+      }
+      .answer-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .context-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .loading-spinner {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      .snackbar {
+        visibility: hidden;
+        min-width: 250px;
+        background-color: #333;
+        color: white;
+        text-align: center;
+        border-radius: 4px;
+        padding: 16px;
+        position: fixed;
+        z-index: 1;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .snackbar.show {
+        visibility: visible;
+        animation: fadein 0.5s, fadeout 0.5s 2.5s;
+      }
+      @keyframes fadein {
+        from {
+          bottom: 0;
+          opacity: 0;
+        }
+        to {
+          bottom: 30px;
+          opacity: 1;
+        }
+      }
+      @keyframes fadeout {
+        from {
+          bottom: 30px;
+          opacity: 1;
+        }
+        to {
+          bottom: 0;
+          opacity: 0;
+        }
+      }
+      .dialog {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+      }
+      .dialog-content {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        min-width: 300px;
+        max-width: 500px;
+      }
+      .dialog-actions {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="container">
+        <h1>PDF Question & Answer System</h1>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="card">
+        <div class="form-group">
+          <h2>Upload PDF</h2>
+          <input type="file" id="pdfFile" accept=".pdf" class="input-field" />
+          <button onclick="uploadPDF()" class="button">Upload PDF</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Uploaded Documents</h2>
+        <div id="documentsList" class="document-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <h2>Ask a Question</h2>
+          <input
+            type="text"
+            id="question"
+            placeholder="Enter your question"
+            class="input-field"
+          />
+          <button onclick="askQuestion()" class="button">Ask Question</button>
+        </div>
+        <div id="answer" class="answer-section" style="display: none"></div>
+        <div id="context" class="answer-section" style="display: none"></div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+      <div class="loading-spinner">
+        <div
+          class="material-icons"
+          style="
+            font-size: 48px;
+            color: #1976d2;
+            animation: spin 1s linear infinite;
+          "
+        >
+          refresh
+        </div>
+        <p id="loadingText">Processing...</p>
+      </div>
+    </div>
+
+    <!-- Snackbar for notifications -->
+    <div id="snackbar" class="snackbar"></div>
+
+    <!-- Confirmation Dialog -->
+    <div id="confirmDialog" class="dialog">
+      <div class="dialog-content">
+        <h3>Confirm Delete</h3>
+        <p>Are you sure you want to delete this document?</p>
+        <div class="dialog-actions">
+          <button onclick="closeDialog()" class="button">Cancel</button>
+          <button id="confirmDeleteBtn" class="button delete">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Show loading overlay
+      function showLoading(text) {
+        document.getElementById("loadingText").textContent = text;
+        document.getElementById("loadingOverlay").style.display = "flex";
+      }
+
+      // Hide loading overlay
+      function hideLoading() {
+        document.getElementById("loadingOverlay").style.display = "none";
+      }
+
+      // Show snackbar notification
+      function showNotification(message) {
+        const snackbar = document.getElementById("snackbar");
+        snackbar.textContent = message;
+        snackbar.className = "snackbar show";
+        setTimeout(() => {
+          snackbar.className = "snackbar";
+        }, 3000);
+      }
+
+      // Show confirmation dialog
+      function showConfirmDialog(onConfirm) {
+        const dialog = document.getElementById("confirmDialog");
+        dialog.style.display = "flex";
+        document.getElementById("confirmDeleteBtn").onclick = () => {
+          onConfirm();
+          closeDialog();
+        };
+      }
+
+      // Close dialog
+      function closeDialog() {
+        document.getElementById("confirmDialog").style.display = "none";
+      }
+
+      // Load documents when page loads
+      window.addEventListener("load", loadDocuments);
+
+      async function loadDocuments() {
+        try {
+          const response = await fetch("/documents");
+          const documents = await response.json();
+
+          const documentsHtml = documents
+            .map(
+              (doc) => `
+            <div class="document-item">
+              <div class="document-info">
+                <h3 style="margin: 0;">${doc.fileName}</h3>
+                <small>Uploaded: ${new Date(
+                  doc.uploadDate
+                ).toLocaleString()}</small><br>
+                <small>Pages: ${doc.pageCount}, Chunks: ${
+                doc.chunkCount
+              }</small>
+              </div>
+              <button class="button delete" onclick="deleteDocument('${
+                doc._id
+              }')">
+                <span class="material-icons">delete</span>
+              </button>
+            </div>
+          `
+            )
+            .join("");
+
+          document.getElementById("documentsList").innerHTML = documents.length
+            ? documentsHtml
+            : "<p>No documents uploaded yet.</p>";
+        } catch (error) {
+          console.error("Error loading documents:", error);
+          showNotification("Error loading documents");
+        }
+      }
+
+      async function deleteDocument(hash) {
+        showConfirmDialog(async () => {
+          try {
+            showLoading("Deleting document...");
+            const response = await fetch(`/documents/${hash}`, {
+              method: "DELETE",
+            });
+            const result = await response.json();
+            showNotification(result.message);
+            loadDocuments();
+          } catch (error) {
+            console.error("Error deleting document:", error);
+            showNotification("Error deleting document");
+          } finally {
+            hideLoading();
+          }
+        });
+      }
+
+      async function uploadPDF() {
+        const fileInput = document.getElementById("pdfFile");
+        const file = fileInput.files[0];
+
+        if (!file) {
+          showNotification("Please select a PDF file first");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("pdf", file);
+
+        try {
+          showLoading("Uploading and processing PDF...");
+          const response = await fetch("/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const result = await response.json();
+          showNotification(result.message);
+          loadDocuments();
+          fileInput.value = "";
+        } catch (error) {
+          console.error("Error:", error);
+          showNotification("Error uploading PDF");
+        } finally {
+          hideLoading();
+        }
+      }
+
+      async function askQuestion() {
+        const questionInput = document.getElementById("question");
+        const question = questionInput.value.trim();
+
+        if (!question) {
+          showNotification("Please enter a question");
+          return;
+        }
+
+        try {
+          showLoading("Generating answer...");
+          const response = await fetch("/ask", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ question }),
+          });
+          const result = await response.json();
+
+          const answerDiv = document.getElementById("answer");
+          const contextDiv = document.getElementById("context");
+
+          answerDiv.innerHTML = `
+            <h3>Answer</h3>
+            <p>${result.answer}</p>
+          `;
+          answerDiv.style.display = "block";
+
+          if (result.context && result.context.length > 0) {
+            const contextHtml = result.context
+              .map(
+                (text, index) => `
+              <div class="context-item">
+                <strong>Relevant Text ${index + 1}</strong>
+                <p>${text}</p>
+              </div>
+            `
+              )
+              .join("");
+
+            contextDiv.innerHTML = `
+              <h3>Supporting Context</h3>
+              ${contextHtml}
+            `;
+            contextDiv.style.display = "block";
+          } else {
+            contextDiv.style.display = "none";
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          showNotification("Error getting answer");
+        } finally {
+          hideLoading();
+        }
+      }
+    </script>
+  </body>
+</html>
